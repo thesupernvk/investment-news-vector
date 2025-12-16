@@ -1,0 +1,40 @@
+# ---------------------------
+# Core Python utilities
+# ---------------------------
+python-dotenv>=1.0.1
+pydantic>=2.7.0
+PyYAML>=6.0.1
+requests>=2.32.0
+beautifulsoup4>=4.12.3
+
+# ---------------------------
+# Web scraping & safety
+# ---------------------------
+lxml>=5.2.0
+
+# ---------------------------
+# Vector database (PGVector)
+# ---------------------------
+psycopg2-binary>=2.9.9
+
+# ---------------------------
+# LLM providers
+# ---------------------------
+openai>=1.30.0
+google-generativeai>=0.7.0
+
+# ---------------------------
+# API (RAG service)
+# ---------------------------
+fastapi>=0.110.0
+uvicorn[standard]>=0.29.0
+
+# ---------------------------
+# Text processing
+# ---------------------------
+tiktoken>=0.7.0
+
+# ---------------------------
+# Scheduling (weekly ingestion)
+# ---------------------------
+APScheduler>=3.10.4

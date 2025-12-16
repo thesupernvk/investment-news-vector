@@ -1,0 +1,56 @@
+sources:
+  - name: ubs_wealth_insights
+    enabled: true
+    fetcher: fetch_ubs_insights
+    article_limit: 5
+    category: private_banking
+    region: global
+
+  - name: citi_global_insights
+    enabled: false
+    fetcher: fetch_citi_insights
+    article_limit: 5
+    category: private_banking
+    region: global
+
+  - name: jpm_market_insights
+    enabled: false
+    fetcher: fetch_jpm_insights
+    article_limit: 5
+    category: investment_strategy
+    region: global
+
+  - name: blackrock_insights
+    enabled: true
+    fetcher: fetch_blackrock_insights
+    article_limit: 5
+    category: asset_management
+    region: global
+
+  - name: pimco_insights
+    enabled: false
+    fetcher: fetch_pimco_insights
+    article_limit: 5
+    category: asset_management
+    region: global
+
+  - name: bis_banking
+    enabled: false
+    fetcher: fetch_bis_reports
+    article_limit: 3
+    category: regulation
+    region: global
+
+  - name: imf_weo
+    enabled: false
+    fetcher: fetch_imf_weo
+    article_limit: 3
+    category: macroeconomics
+    region: global
+
+  - name: mckinsey_wealth
+    enabled: false
+    fetcher: fetch_mckinsey_wealth
+    article_limit: 3
+    category: consulting
+    region: global
