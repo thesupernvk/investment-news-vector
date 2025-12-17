@@ -12,19 +12,23 @@ from provider_factory import get_llm_provider
 from vector_store.pgvector_store import PGVectorStore
 from config import PG_DSN, LLM_PROVIDER
 
+import tempfile
+import requests
+from pdf_utils import extract_text_from_pdf
+
 
 # ------------------------------------------------------------------
 # Banking-related categories ONLY
 # ------------------------------------------------------------------
 
 BANKING_CATEGORIES = {
-    "private_banking",
-    "asset_management",
-    "investment_strategy",
-    "regulation",
-    "macroeconomics",
+    "investment_banking",
+    "financial_stability",
+    "regulation_liquidity",
+    "monetary_policy",
+    "banking_risk",
+    "market_trends",
 }
-
 
 # ------------------------------------------------------------------
 # Initialize providers
@@ -92,9 +96,17 @@ def main():
                 continue
 
             # ------------------------------
-            # Fetch article content
+            # Fetch content (HTML or PDF)
             # ------------------------------
-            content = fetch_article_content(url)
+            if url.lower().endswith(".pdf"):
+                with tempfile.NamedTemporaryFile(suffix=".pdf") as tmp:
+                    r = requests.get(url, timeout=30)
+                    r.raise_for_status()
+                    tmp.write(r.content)
+                    tmp.flush()
+                    content = extract_text_from_pdf(tmp.name)
+            else:
+                content = fetch_article_content(url)
             if not content or len(content) < 500:
                 print(f"Skipping (content too short): {title}")
                 continue

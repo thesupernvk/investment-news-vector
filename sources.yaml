@@ -1,6 +1,6 @@
 sources:
   - name: ubs_wealth_insights
-    enabled: true
+    enabled: false
     fetcher: fetch_ubs_insights
     article_limit: 5
     category: private_banking
@@ -21,7 +21,7 @@ sources:
     region: global
 
   - name: blackrock_insights
-    enabled: true
+    enabled: false
     fetcher: fetch_blackrock_insights
     article_limit: 5
     category: asset_management
@@ -54,3 +54,46 @@ sources:
     article_limit: 3
     category: consulting
     region: global
+
+  - name: imf_capital_markets_news
+    enabled: true
+    fetcher: fetch_imf_capital_markets
+    article_limit: 10
+    category: investment_banking
+    region: global
+
+  - name: imf_gfsr
+    enabled: true
+    fetcher: fetch_imf_gfsr
+    article_limit: 5
+    category: financial_stability
+    region: global
+
+  - name: bis_bulletins
+    enabled: false
+    fetcher: fetch_bis_bulletins
+    article_limit: 5
+    category: regulation_liquidity
+    region: global
+
+  - name: fed_economic_research
+    enabled: true
+    fetcher: fetch_fed_econ
+    article_limit: 5
+    category: monetary_policy
+    region: us
+
+  - name: ecb_financial_stability
+    enabled: true
+    fetcher: fetch_ecb_financial_stability
+    article_limit: 5
+    category: banking_risk
+    region: europe
+
+  - name: reuters_global_markets
+    enabled: true
+    fetcher: fetch_reuters_markets
+    article_limit: 10
+    category: market_trends
+    region: global
+
