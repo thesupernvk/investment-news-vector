@@ -1,44 +1,38 @@
-import requests
+from playwright.sync_api import sync_playwright
 from bs4 import BeautifulSoup
-from urllib.parse import urljoin, urlparse
-
-from scraper.safety import rate_limit
+from urllib.parse import urljoin
 
 BASE_URL = "https://design.citi.net"
 START_URL = "https://design.citi.net/ds/icgds/angular/docs/components/alerts/overview"
 
+# 👉 Adjust if needed
+SYSTEM_CHROME_PATH = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 
-# ---------------------------------------------------------
-# Helper: code-aware content extraction
-# ---------------------------------------------------------
-def extract_component_content(soup: BeautifulSoup) -> str:
-    """
-    Extract component documentation with code-aware formatting.
-    """
 
+def extract_rendered_content(soup: BeautifulSoup) -> str:
+    """
+    Extract rendered Angular documentation from <app-doc-section>
+    """
     parts = []
 
-    main = soup.find("main") or soup
+    for section in soup.select("app-doc-section"):
+        title = section.get("sectiontitle")
+        if title:
+            parts.append(f"\n## {title}\n")
 
-    for el in main.find_all(["h2", "h3", "p", "ul", "ol", "pre"]):
-        # Headers
-        if el.name in ["h2", "h3"]:
-            parts.append(f"\n## {el.get_text(strip=True)}\n")
-
-        # Paragraphs
-        elif el.name == "p":
-            text = el.get_text(strip=True)
+        # Text
+        for p in section.find_all("p"):
+            text = p.get_text(strip=True)
             if text:
                 parts.append(text)
 
         # Lists
-        elif el.name in ["ul", "ol"]:
-            for li in el.find_all("li"):
-                parts.append(f"- {li.get_text(strip=True)}")
+        for li in section.find_all("li"):
+            parts.append(f"- {li.get_text(strip=True)}")
 
         # Code blocks
-        elif el.name == "pre":
-            code = el.get_text()
+        for pre in section.find_all("pre"):
+            code = pre.get_text()
             if code.strip():
                 parts.append("\n```")
                 parts.append(code)
@@ -47,58 +41,71 @@ def extract_component_content(soup: BeautifulSoup) -> str:
     return "\n".join(parts)
 
 
-# ---------------------------------------------------------
-# Main crawler
-# ---------------------------------------------------------
 def fetch_all_citi_components(max_articles=50):
     """
-    Crawl all Citi Design System Angular components automatically.
+    Crawl ALL Angular components using rendered DOM.
     """
-
     articles = []
-    rate_limit(urlparse(START_URL).netloc)
 
-    resp = requests.get(START_URL, timeout=20)
-    resp.raise_for_status()
+    with sync_playwright() as p:
+        browser = p.chromium.launch(
+            executable_path=SYSTEM_CHROME_PATH,
+            headless=True
+        )
 
-    soup = BeautifulSoup(resp.text, "html.parser")
+        page = browser.new_page()
 
-    component_urls = set()
+        # Load initial page
+        page.goto(START_URL, timeout=60000)
 
-    # ---- Sidebar navigation ----
-    for link in soup.select("a[href*='/components/']"):
-        href = link.get("href")
-        if not href:
-            continue
+        # Wait for sidebar items to render
+        page.wait_for_selector("div[data-path]", timeout=30000)
 
-        if not href.endswith("/overview"):
-            continue
+        # Extract sidebar component paths
+        components = page.evaluate("""
+            () => Array.from(
+                document.querySelectorAll("div[data-path]")
+            ).map(el => ({
+                label: el.getAttribute("data-label"),
+                path: el.getAttribute("data-path")
+            }))
+        """)
 
-        full_url = urljoin(BASE_URL, href)
-        component_urls.add(full_url)
+        seen = set()
 
-    # ---- Visit each component page ----
-    for url in sorted(component_urls):
-        rate_limit(urlparse(url).netloc)
+        for comp in components:
+            label = comp["label"]
+            path = comp["path"]
 
-        page = requests.get(url, timeout=20)
-        page.raise_for_status()
+            if not path or path in seen:
+                continue
 
-        page_soup = BeautifulSoup(page.text, "html.parser")
+            seen.add(path)
 
-        title_el = page_soup.find("h1")
-        title = title_el.get_text(strip=True) if title_el else "Citi Design Component"
+            component_url = urljoin(BASE_URL, path + "/overview")
 
-        # ✅ NOW THIS IS RESOLVED
-        content = extract_component_content(page_soup)
+            page.goto(component_url, timeout=60000)
 
-        articles.append({
-            "title": title,
-            "link": url,
-            "content": content
-        })
+            # Wait for Angular doc content
+            page.wait_for_selector("app-doc-section", timeout=30000)
 
-        if len(articles) >= max_articles:
-            break
+            html = page.content()
+            soup = BeautifulSoup(html, "html.parser")
+
+            content = extract_rendered_content(soup)
+
+            if not content.strip():
+                continue
+
+            articles.append({
+                "title": label,
+                "link": component_url,
+                "content": content
+            })
+
+            if len(articles) >= max_articles:
+                break
+
+        browser.close()
 
     return articles
