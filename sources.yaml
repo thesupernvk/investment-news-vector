@@ -103,3 +103,10 @@ sources:
     article_limit: 10
     category: market_trends
     region: global
+
+  - name: citi_design_system_all_components
+    enabled: true
+    fetcher: fetch_all_citi_components
+    article_limit: 50
+    category: internal_docs
+    region: internal
