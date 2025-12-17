@@ -56,14 +56,14 @@ sources:
     region: global
 
   - name: imf_capital_markets_news
-    enabled: true
+    enabled: false
     fetcher: fetch_imf_capital_markets
     article_limit: 10
     category: investment_banking
     region: global
 
   - name: imf_gfsr
-    enabled: true
+    enabled: false
     fetcher: fetch_imf_gfsr
     article_limit: 5
     category: financial_stability
@@ -77,23 +77,29 @@ sources:
     region: global
 
   - name: fed_economic_research
-    enabled: true
+    enabled: false
     fetcher: fetch_fed_econ
     article_limit: 5
     category: monetary_policy
     region: us
 
   - name: ecb_financial_stability
-    enabled: true
+    enabled: false
     fetcher: fetch_ecb_financial_stability
     article_limit: 5
     category: banking_risk
     region: europe
 
   - name: reuters_global_markets
-    enabled: true
+    enabled: false
     fetcher: fetch_reuters_markets
     article_limit: 10
     category: market_trends
     region: global
 
+  - name: bbc_business
+    enabled: true
+    fetcher: fetch_bbc_business
+    article_limit: 10
+    category: market_trends
+    region: global

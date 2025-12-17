@@ -11,6 +11,7 @@ from scraper.bis_bulletins import fetch_bis_bulletins
 from scraper.fed_econ import fetch_fed_econ
 from scraper.ecb_financial_stability import fetch_ecb_financial_stability
 from scraper.reuters_markets import fetch_reuters_markets
+from scraper.bbc_business import fetch_bbc_business
 
 SCRAPER_REGISTRY = {
     "fetch_ubs_insights": fetch_ubs_insights,
@@ -26,4 +27,5 @@ SCRAPER_REGISTRY = {
     "fetch_fed_econ": fetch_fed_econ,
     "fetch_ecb_financial_stability": fetch_ecb_financial_stability,
     "fetch_reuters_markets": fetch_reuters_markets,
+    "fetch_bbc_business": fetch_bbc_business,
 }
