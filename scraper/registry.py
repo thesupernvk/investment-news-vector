@@ -12,7 +12,7 @@ from scraper.fed_econ import fetch_fed_econ
 from scraper.ecb_financial_stability import fetch_ecb_financial_stability
 from scraper.reuters_markets import fetch_reuters_markets
 from scraper.bbc_business import fetch_bbc_business
-from scraper.citi_design_components import fetch_all_citi_components
+from email_ingestion.email_source import fetch_email_newsletters
 
 SCRAPER_REGISTRY = {
     "fetch_ubs_insights": fetch_ubs_insights,
@@ -29,5 +29,5 @@ SCRAPER_REGISTRY = {
     "fetch_ecb_financial_stability": fetch_ecb_financial_stability,
     "fetch_reuters_markets": fetch_reuters_markets,
     "fetch_bbc_business": fetch_bbc_business,
-    "fetch_all_citi_components": fetch_all_citi_components,
+    "fetch_email_newsletters": fetch_email_newsletters,
 }

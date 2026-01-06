@@ -2,6 +2,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import os
+import tempfile
+import requests
+
 from config import load_sources
 from scraper.registry import SCRAPER_REGISTRY
 from scraper.hn_scraper import fetch_article_content  # reused for article body
@@ -12,13 +15,11 @@ from provider_factory import get_llm_provider
 from vector_store.pgvector_store import PGVectorStore
 from config import PG_DSN, LLM_PROVIDER
 
-import tempfile
-import requests
 from pdf_utils import extract_text_from_pdf
 
 
 # ------------------------------------------------------------------
-# Banking-related categories ONLY
+# Banking + Email categories
 # ------------------------------------------------------------------
 
 BANKING_CATEGORIES = {
@@ -28,7 +29,9 @@ BANKING_CATEGORIES = {
     "monetary_policy",
     "banking_risk",
     "market_trends",
+    "email",            # ✅ EMAIL ENABLED
 }
+
 
 # ------------------------------------------------------------------
 # Initialize providers
@@ -50,7 +53,7 @@ vector_store = PGVectorStore(PG_DSN)
 # ------------------------------------------------------------------
 
 def main():
-    print("🏦 Starting BANKING-ONLY ingestion pipeline")
+    print("🏦 Starting BANKING + EMAIL ingestion pipeline")
 
     sources = load_sources()
 
@@ -65,7 +68,7 @@ def main():
 
         category = source.get("category", "").lower()
 
-        # 🔒 FILTER NON-BANKING SOURCES
+        # 🔒 FILTER NON-BANKING / NON-EMAIL SOURCES
         if category not in BANKING_CATEGORIES:
             skipped_categories += 1
             continue
@@ -73,56 +76,72 @@ def main():
         source_name = source["name"]
         fetcher_name = source["fetcher"]
         article_limit = source.get("article_limit", 5)
+        path = source.get("path")  # ✅ REQUIRED FOR EMAIL
 
-        print(f"\n=== Processing banking source: {source_name} ({category}) ===")
+        print(f"\n=== Processing source: {source_name} ({category}) ===")
 
         if fetcher_name not in SCRAPER_REGISTRY:
             print(f"Fetcher '{fetcher_name}' not registered, skipping.")
             continue
 
         fetcher = SCRAPER_REGISTRY[fetcher_name]
-        articles = fetcher()[:article_limit]
+
+        # --------------------------------------------------
+        # EMAIL FETCHERS REQUIRE PATH
+        # --------------------------------------------------
+        if category == "email":
+            articles = fetcher(path)[:article_limit]
+        else:
+            articles = fetcher()[:article_limit]
 
         for article_index, article in enumerate(articles):
-            title = article["title"]
-            url = article["link"]
+            title = article.get("title", "Untitled")
 
-            # ------------------------------
-            # URL deduplication
-            # ------------------------------
-            if vector_store.url_exists(url):
-                print(f"Skipping (URL exists): {title}")
-                skipped_urls += 1
-                continue
+            # --------------------------------------------------
+            # EMAIL ARTICLES: content already present
+            # --------------------------------------------------
+            if category == "email":
+                content = article.get("content", "")
+                url = article.get("link", title)
 
-            # ------------------------------
-            # Fetch content (HTML or PDF)
-            # ------------------------------
-            if url.lower().endswith(".pdf"):
-                with tempfile.NamedTemporaryFile(suffix=".pdf") as tmp:
-                    r = requests.get(url, timeout=30)
-                    r.raise_for_status()
-                    tmp.write(r.content)
-                    tmp.flush()
-                    content = extract_text_from_pdf(tmp.name)
+            # --------------------------------------------------
+            # WEB / PDF ARTICLES
+            # --------------------------------------------------
             else:
-                content = fetch_article_content(url)
-            if not content or len(content) < 500:
+                url = article["link"]
+
+                # URL deduplication
+                if vector_store.url_exists(url):
+                    print(f"Skipping (URL exists): {title}")
+                    skipped_urls += 1
+                    continue
+
+                if url.lower().endswith(".pdf"):
+                    with tempfile.NamedTemporaryFile(suffix=".pdf") as tmp:
+                        r = requests.get(url, timeout=30)
+                        r.raise_for_status()
+                        tmp.write(r.content)
+                        tmp.flush()
+                        content = extract_text_from_pdf(tmp.name)
+                else:
+                    content = fetch_article_content(url)
+
+            if not content or len(content) < 300:
                 print(f"Skipping (content too short): {title}")
                 continue
 
-            # ------------------------------
+            # --------------------------------------------------
             # Content hash deduplication
-            # ------------------------------
+            # --------------------------------------------------
             content_hash = compute_content_hash(content)
             if vector_store.content_hash_exists(content_hash):
                 print(f"Skipping (duplicate content): {title}")
                 skipped_hashes += 1
                 continue
 
-            # ------------------------------
+            # --------------------------------------------------
             # Chunking
-            # ------------------------------
+            # --------------------------------------------------
             chunks = chunk_text(content)
             print(f"Ingesting '{title}' → {len(chunks)} chunks")
 
@@ -156,12 +175,12 @@ def main():
 
             total_chunks += len(chunks)
 
-    print("\n===== BANKING INGESTION SUMMARY =====")
+    print("\n===== INGESTION SUMMARY =====")
     print(f"Total chunks stored: {total_chunks}")
     print(f"Skipped URLs: {skipped_urls}")
     print(f"Skipped duplicate content: {skipped_hashes}")
-    print(f"Skipped non-banking sources: {skipped_categories}")
-    print("✅ Banking-only PGVector ingestion completed successfully")
+    print(f"Skipped non-banking/email sources: {skipped_categories}")
+    print("✅ Banking + Email PGVector ingestion completed successfully")
 
 
 if __name__ == "__main__":

@@ -110,3 +110,10 @@ sources:
     article_limit: 50
     category: internal_docs
     region: internal
+
+  - name: internal_email_newsletters
+    enabled: true
+    fetcher: fetch_email_newsletters
+    path: data/newsletters
+    category: email
+    article_limit: 10
